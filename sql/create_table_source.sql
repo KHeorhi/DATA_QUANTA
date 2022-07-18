@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS {{ params.schema }}.{{ params.table_name }} ({{ params.col_name }});
