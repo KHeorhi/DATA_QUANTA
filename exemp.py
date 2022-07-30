@@ -19,12 +19,13 @@ class DataSourceToCSV(BaseOperator):
     def __init__(
             self,
             sql: str,
-            csv_file_path: str,
+            csv_file_path,
+            csv_file_name,
             *args,**kwargs):
-        super().__init__(*args, **kwargs)
-        
+        super(DataSourceToCSV, self).__init__(*args, **kwargs)
         self.sql = sql,
-        self.csv_file_path = csv_file_path
+        self.csv_file_path = csv_file_path,
+        self.csv_file_name = csv_file_name
 
     def execute(self, context):
         try:
@@ -34,7 +35,8 @@ class DataSourceToCSV(BaseOperator):
                                           #'host':'host.docker.internal',
                                           host=db_from['host'],
                                           port=db_from['port'],
-                                          database=db_from['database'])
+                                          database=db_from['database']
+                                          )
 
             # Курсор для выполнения операций с базой данных
             cursor = connection.cursor()
@@ -43,17 +45,13 @@ class DataSourceToCSV(BaseOperator):
             # Получить результат
             record = cursor.fetchall()
             
-            temp_file = f'{self.csv_file_path}/db.csv'
-
+            n = ''.join(self.csv_file_path)            
+            temp_file = f'{n}{self.csv_file_name}'
+            
             with open(temp_file, mode='w') as f:
                 writer = csv.writer(f, delimiter='|', quoting=csv.QUOTE_NONE)
                 writer.writerow([i[0] for i in cursor.description])
                 #writer.writerows(record)
-                '''for r in record:
-                    for q in range(len(r[2])):
-                        if 'ARRAY' in r[2][q]:
-                            r[2][q] = r[2][q].replace('ARRAY', 'text[]')
-                            print(r[2][q])'''
                 writer.writerows(record)
 
         except (Exception, Error) as error:
@@ -70,10 +68,12 @@ class DataSourceFromCSV(BaseOperator):
     def __init__(
             self,
             csv_file_path: str,
+            csv_file_name:str,
             *args,**kwargs):
         super().__init__(*args, **kwargs)
         
         self.csv_file_path = csv_file_path
+        self.csv_file_name = csv_file_name
 
     def execute(self, context):
         try:
@@ -89,7 +89,8 @@ class DataSourceFromCSV(BaseOperator):
             # Курсор для выполнения операций с базой данных
             cursor = connection.cursor()
 
-            temp_file = f'{self.csv_file_path}/db.csv'
+            n = ''.join(self.csv_file_path)            
+            temp_file = f'{n}{self.csv_file_name}'
 
             with open(temp_file, mode='r') as f:
                 reader = csv.reader(f)
