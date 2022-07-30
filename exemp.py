@@ -6,14 +6,6 @@ from configuration import db_from, db_to, dag_config
 import csv
 
 
-sql_ = """select table_schema, table_name, array_agg(column_name||' '||data_type) as column_name 
-                            from information_schema.columns
-                            where table_schema not in ('pg_catalog', 'information_schema', 'public')
-                            group by table_schema, table_name
-                            order by 1;"""
-
-#csv_name = 'db'
-
 class DataSourceToCSV(BaseOperator):
 
     def __init__(
@@ -41,7 +33,7 @@ class DataSourceToCSV(BaseOperator):
             # Курсор для выполнения операций с базой данных
             cursor = connection.cursor()
             # Выполнение SQL-запроса
-            cursor.execute(dag_config['sql_from'])
+            cursor.execute(''.join(self.sql))
             # Получить результат
             record = cursor.fetchall()
             
@@ -49,7 +41,7 @@ class DataSourceToCSV(BaseOperator):
             temp_file = f'{n}{self.csv_file_name}'
             
             with open(temp_file, mode='w') as f:
-                writer = csv.writer(f, delimiter='|', quoting=csv.QUOTE_NONE)
+                writer = csv.writer(f, delimiter='|', quoting=csv.QUOTE_NONE, quotechar='', escapechar='\\')
                 writer.writerow([i[0] for i in cursor.description])
                 #writer.writerows(record)
                 writer.writerows(record)
@@ -69,9 +61,10 @@ class DataSourceFromCSV(BaseOperator):
             self,
             csv_file_path: str,
             csv_file_name:str,
+            target_table:str,
             *args,**kwargs):
         super().__init__(*args, **kwargs)
-        
+        self.target_table = target_table
         self.csv_file_path = csv_file_path
         self.csv_file_name = csv_file_name
 
@@ -95,7 +88,7 @@ class DataSourceFromCSV(BaseOperator):
             with open(temp_file, mode='r') as f:
                 reader = csv.reader(f)
                 next(reader)
-                cursor.copy_from(f, 'table_params', sep='|')
+                cursor.copy_from(f, self.target_table, sep='|')
                 connection.commit()
     
         except (Exception, Error) as error:
