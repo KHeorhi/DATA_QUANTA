@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.fnc_create_ddl()
+CREATE OR REPLACE FUNCTION etl.fnc_create_ddl()
  RETURNS void
  LANGUAGE plpgsql
 AS $function$
