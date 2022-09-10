@@ -2,7 +2,7 @@ from airflow.models.baseoperator import BaseOperator
 import psycopg2
 from psycopg2 import Error
 from requests import options
-from configuration import db_from, db_to, dag_config
+from configuration import db_from, db_to, dag_config, db_config
 import csv
 
 
@@ -22,12 +22,12 @@ class DataSourceToCSV(BaseOperator):
     def execute(self, context):
         try:
             # Подключение к существующей базе данных
-            connection = psycopg2.connect(user=db_from['user'],
-                                          password=db_from['password'],
+            connection = psycopg2.connect(user=db_config['db_from']['user'],
+                                          password=db_config['db_from']['password'],
                                           #'host':'host.docker.internal',
-                                          host=db_from['host'],
-                                          port=db_from['port'],
-                                          database=db_from['database']
+                                          host=db_config['db_from']['host'],
+                                          port=db_config['db_from']['port'],
+                                          database=db_config['db_from']['database']
                                           )
 
             # Курсор для выполнения операций с базой данных
@@ -71,13 +71,13 @@ class DataSourceFromCSV(BaseOperator):
     def execute(self, context):
         try:
             # Подключение к существующей базе данных
-            connection = psycopg2.connect(user=db_to['user'],
-                                          password=db_to['password'],
+            connection = psycopg2.connect(user=db_config['db_to']['user'],
+                                          password=db_config['db_to']['password'],
                                           #'host':'host.docker.internal',
-                                          host=db_to['host'],
-                                          port=db_to['port'],
-                                          database=db_to['database'],
-                                          options=db_to['options'])
+                                          host=db_config['db_to']['host'],
+                                          port=db_config['db_to']['port'],
+                                          database=db_config['db_to']['database'],
+                                          options=db_config['db_to']['options'])
 
             # Курсор для выполнения операций с базой данных
             cursor = connection.cursor()

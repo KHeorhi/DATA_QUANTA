@@ -2,10 +2,11 @@ from airflow import DAG
 from airflow.operators.dummy import DummyOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.utils.task_group import TaskGroup
-from airflow.decorators import task_group
+
 from datetime import datetime
 from exemp import DataSourceToCSV, DataSourceFromCSV
 from configuration import dag_config, tabel_name
+
 
 
 with DAG(
@@ -17,7 +18,7 @@ with DAG(
          ) as dag:
 
     s0 = DummyOperator(
-        task_id='download_csv'
+        task_id='download_csv_1'
     )
 
     union_branch = DummyOperator(
@@ -127,7 +128,7 @@ with DAG(
                 )
             t4 >> t41 >> t42
 
-        with TaskGroup('group5') as group5:
+        with TaskGroup('group5') as group5: ## закинуть как резульат класса
             t5 = DataSourceToCSV(
                 task_id='data_from_key_db_to_csv',
                 sql=dag_config['sql_key'],

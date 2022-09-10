@@ -10,6 +10,14 @@ declare
     ex_func text;
     _views cursor is select * from etl.view_table_params;
     ex_view text;
+    _keys cursor is select * from etl.key_table_params;
+    key_one text;
+    key_two text;
+    key_three text;
+    key_four text;
+    key_five text;
+   	key_six text;
+   	key_ex text;
 BEGIN
      FOR schemas_names in 
 	 (
@@ -41,10 +49,28 @@ BEGIN
       	ex_func := func.script;
         execute ex_func;
       END LOOP;
-      set search_path to bookings, public;--ошибка. необходимо подумать над заданием пути поиска через цикл возможно 
-      for _view in _views loop
+      set search_path to bookings, public;
+      FOR _view in _views LOOP
       	ex_view := 'CREATE OR REPLACE VIEW '||_view.table_schema||'.'||_view.table_name||' AS'||_view.view_definition;
         execute ex_view;      	
+      END LOOP;
+      for _key in _keys loop
+        key_one := 'ALTER TABLE ';
+        key_two := ' ADD CONSTRAINT ';
+        key_three := ' PRIMARY KEY ';
+        key_four := ' FOREIGN KEY ';
+        key_five := ' REFERENCES ';
+        key_six := ' UNIQUE ';
+      	IF _key.constraint_type = 'P'
+          THEN 
+       		key_ex := key_one||_key.table_name||key_two||_key.constraint_name||key_three||'('||_key.columns||');' ;
+      	elsif _key.constraint_type = 'U'
+      	  THEN 
+      	 	key_ex := key_one||_key.table_name||key_two||_key.constraint_name||key_six||'('||_key.columns||');' ;
+       	else
+      		key_ex := key_one||_key.table_name||key_two||_key.constraint_name||key_four||'('||_key.columns||')'||key_five||_key.foreign_table||'('||_key.column_name||');';
+        end if;
+        execute key_ex;
       end loop;
 END;
 $function$
