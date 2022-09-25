@@ -1,11 +1,12 @@
 from airflow import DAG
 from airflow.operators.dummy import DummyOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.utils.task_group import TaskGroup
+#from airflow.utils.task_group import TaskGroup
 
 from datetime import datetime
-from exemp import DataSourceToCSV, DataSourceFromCSV
-from configuration import dag_config, tabel_name
+#from exemp import DataSourceToCSV, DataSourceFromCSV
+from configuration import dag_config, tabel_name, dag_config_1
+from modify import line_task
 
 
 
@@ -38,7 +39,9 @@ with DAG(
         sql='select etl.fnc_create_ddl();',
         database=dag_config['pg_db']
         )
-    with TaskGroup('scoup_task') as scoup:
+
+    scoup=line_task(dag_config_1, tabel_name)
+    '''with TaskGroup('scoup_task') as scoup:
         with TaskGroup('group1') as group1:
             t1 = DataSourceToCSV(
                 task_id='data_from_source_db_to_csv',
@@ -150,5 +153,6 @@ with DAG(
             t5 >> t51 >> t52
 
         scoup_task = [group1, group2, group3, group4, group5]
+'''
 
 s0 >> scoup >> union_branch >> t6 >> t7

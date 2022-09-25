@@ -113,7 +113,7 @@ db_config = {
 }
 
 dag_config_1 = {
-                'group1': [
+                'group0': [
                           {
                             'task_id': 'data_from_source_db_to_csv',
                             'sql':"""select table_schema, table_name, array_agg(concat_ws(' ' , column_name, data_type, is_nullable)) 
@@ -145,7 +145,7 @@ dag_config_1 = {
                           }
                 ],
                         
-                'group2':[
+                'group1':[
                           {
                             'task_id': 'data_from_view_db_to_csv',
                             'sql':"""select table_schema, table_name, view_definition
@@ -164,7 +164,7 @@ dag_config_1 = {
                             'target_table':'view_table_params'
                           }
                 ],
-                'group3':[
+                'group2':[
                           {
                             'task_id': 'data_from_function_db_to_csv',
                             'sql':'''select routine_schema, routine_name, data_type,
@@ -185,7 +185,7 @@ dag_config_1 = {
                             'target_table':'functions_table_params'
                           }
                 ],
-                'group4':[
+                'group3':[
                           {
                             'task_id': 'data_from_grants_db_to_csv',
                             'sql':'''select * 
@@ -207,32 +207,39 @@ dag_config_1 = {
                             'target_table':'grants_table_params'
                           }
                 ],
-                'group5':[
+                'group4':[
                           {
                             'task_id': 'data_from_key_db_to_csv',
-                            'sql':'''with one as (SELECT FORMAT('%s.%s', tc.table_schema, tc.table_name) AS table_name,
-   				 	                                              tc.constraint_name, kcu.column_name, tc.constraint_type
-                                                  FROM information_schema.table_constraints tc
-                                                  JOIN information_schema.key_column_usage AS kcu
-                                                      ON tc.constraint_name = kcu.constraint_name
-                                                            AND tc.table_schema = kcu.table_schema
-                                                  WHERE constraint_type in ('PRIMARY KEY', 'UNIQUE', 'FOREIGN KEY'))
-                                        SELECT table_name, constraint_name, array_to_string(array_agg(column_name),',') as columns, 
-                                            case 
-                                            when constraint_type = 'PRIMARY KEY' then 'P'
-                                            when constraint_type = 'FOREIGN KEY' then 'F'
-                                            when constraint_type = 'UNIQUE' then 'U'
-                                              end as constraint_type
-                                        FROM one
-                                        GROUP BY table_name, constraint_name, constraint_type
+                            'sql':'''with two as (select table_name, constraint_name, array_to_string(array_agg(column_name),',') as columns, 
+                                                  case 
+                                                    when constraint_type = 'PRIMARY KEY' then 'P'
+                                                    when constraint_type = 'FOREIGN KEY' then 'F'
+                                                    when constraint_type = 'UNIQUE' then 'U'
+                                                    end as constraint_type
+                                                  from ( select FORMAT('%s.%s', tc.table_schema, tc.table_name) AS table_name,
+                                                          tc.constraint_name, kcu.column_name, tc.constraint_type
+                                                          FROM information_schema.table_constraints tc
+                                                          JOIN information_schema.key_column_usage AS kcu
+                                                              ON tc.constraint_name = kcu.constraint_name
+                                                              AND tc.table_schema = kcu.table_schema
+                                                          WHERE constraint_type in ('PRIMARY KEY', 'UNIQUE', 'FOREIGN KEY')
+                                                        ) as one
+                                                  group by table_name, constraint_name,constraint_type)
+                                      select distinct two.table_name as table_name, two.constraint_name as constraint_name, two.columns as columns,
+                                             two.constraint_type as constraint_type, format('%s.%s', ccu.table_schema, ccu.table_name) as foreign_table,
+                                             array_to_string(array_agg(ccu.column_name), ',') as column_name
+                                      from two
+                                      JOIN information_schema.constraint_column_usage AS ccu
+                                            ON ccu.constraint_name = two.constraint_name
+                                      group by two.table_name, two.constraint_name, two.columns, two.constraint_type, foreign_table
+                                      order by constraint_type desc
                                 '''
                           },
                           {
                             'task_id' : 'create_key_tb',
                             'postgres_conn_id':'quanta_conn',
-                            'sql':'''CREATE TABLE IF NOT EXISTS etl.key_table_params (table_schema varchar, constraint_name varchar,
-                                                                                      table_name varchar, columns varchar,
-                                                                                      constraint_type varchar);
+                            'sql':'''CREATE TABLE IF NOT EXISTS etl.key_table_params (table_name varchar, constraint_name varchar, columns varchar,
+                                                                            constraint_type varchar, foreign_table varchar, column_name varchar);
                                   ''',
                             'database':'quanta'
                           },
