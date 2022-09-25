@@ -21,7 +21,7 @@ def line_task(config:dict, table:dict):
                                         task_id=config[group][1]['task_id'],
                                         postgres_conn_id=config[group][1]['postgres_conn_id'],
                                         sql=config[group][1]['sql'],
-                                        database=config[group][1]['quanta'],
+                                        database=config[group][1]['database'],
                                         ##parameters={"schema": 'etl', "table_name": "table_params", "col_name": "table_schema varchar, table_name varchar, column_name varchar"},
                                         #runtime_parameters={'statement_timeout': '3000ms'},
                                         #provide_context=True
@@ -30,7 +30,7 @@ def line_task(config:dict, table:dict):
                                         task_id=config[group][2]['task_id'],
                                         csv_file_path=table['csv_path'],
                                         csv_file_name=table['structure_tb'],
-                                        target_table=config[group][2]['table_params']
+                                        target_table=config[group][2]['target_tables']
                                         )
                                 t1>>t2>>t3
                         task.append(group1)
