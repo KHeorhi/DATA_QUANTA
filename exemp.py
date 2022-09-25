@@ -1,8 +1,7 @@
 from airflow.models.baseoperator import BaseOperator
 import psycopg2
 from psycopg2 import Error
-from requests import options
-from configuration import db_from, db_to, dag_config, db_config
+from configuration import db_config
 import csv
 
 
