@@ -30,7 +30,7 @@ def line_task(config:dict, table:dict):
                                         task_id=config[group][2]['task_id'],
                                         csv_file_path=table['csv_path'],
                                         csv_file_name=table['structure_tb'],
-                                        target_table=config[group][2]['target_tables']
+                                        target_table=config[group][2]['target_table']
                                         )
                                 t1>>t2>>t3
                         task.append(group1)
