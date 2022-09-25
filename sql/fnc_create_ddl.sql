@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION etl.fnc_create_ddl()
+CREATE OR REPLACE FUNCTION etl.fnc_create_ddl(name_foreign_server text, host text, port text, dbname text, l_users text, f_users text, pasword text)
  RETURNS void
  LANGUAGE plpgsql
 AS $function$
@@ -19,12 +19,17 @@ declare
    	key_six text;
    	key_ex text;
 BEGIN
+    EXECUTE 'CREATE EXTENSION IF NOT EXISTS postgres_fdw;';
+    EXECUTE format('CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host %s, port %s, dbname %s);', name_foreign_server, host, port, dbname);
+    EXECUTE format('CREATE USER MAPPING IF NOT EXISTS FOR %s SERVER %s OPTIONS (user %s , password %s);', l_users, name_foreign_server, f_users, pasword);
      FOR schemas_names in 
 	 (
       select distinct table_schema 
       from etl.table_params
       )LOOP
 	  	  	EXECUTE format('CREATE SCHEMA IF NOT EXISTS %s;', schemas_names.table_schema);
+          EXECUTE 'CREATE SCHEMA IF NOT EXISTS stg;';
+          EXECUTE format('IMPORT FOREIGN SCHEMA %s FROM SERVER %s INTO stg;', schemas_names.table_schema, name_foreign_server);
           FOR tables_names in 
 			 (
                SELECT table_name

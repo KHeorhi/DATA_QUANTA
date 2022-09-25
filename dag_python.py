@@ -8,7 +8,13 @@ from modify import line_task
 #PARAMETERS
 pg_conn_name='quanta_conn'
 database='quanta'
-
+name_foreign_server='foreign_demo'
+host="'127.0.0.1'"
+port="'5433'"
+dbname="'demo'"
+l_user='postgres'
+f_user="'postgres'"
+pasword="'123'"
 
 with DAG(
         'sync_db_dag', 
@@ -36,7 +42,8 @@ with DAG(
     t7 = PostgresOperator(
         task_id='execute_ddl',
         postgres_conn_id=pg_conn_name,
-        sql='select etl.fnc_create_ddl();',
+        sql='select etl.fnc_create_ddl(%(name_foreign_server)s, %(host)s, %(port)s, %(dbname)s, %(l_user)s,%(f_users)s, %(pasword)s);',
+        parameters={"name_foreign_server":name_foreign_server, "host":host, "port":port, "dbname":dbname, "l_user":l_user, "f_users":f_user, "pasword":pasword},
         database=database,
         )
 
