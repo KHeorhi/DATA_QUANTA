@@ -19,7 +19,7 @@ def line_task(config:dict, table:dict):
                                         )
                                 t2= PostgresOperator(
                                         task_id=config[group][1]['task_id'],
-                                        postgres_conn_id=config[group][1]['pg_conn_name'],
+                                        postgres_conn_id=config[group][1]['postgres_conn_id'],
                                         sql=config[group][1]['sql'],
                                         database=config[group][1]['quanta'],
                                         ##parameters={"schema": 'etl', "table_name": "table_params", "col_name": "table_schema varchar, table_name varchar, column_name varchar"},
