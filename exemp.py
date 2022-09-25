@@ -2,58 +2,48 @@ from airflow.models.baseoperator import BaseOperator
 import psycopg2
 from psycopg2 import Error
 from requests import options
-from configuration import db_from, db_to, dag_config
+from configuration import db_from, db_to, dag_config, db_config
 import csv
 
-
-sql_ = """select table_schema, table_name, array_agg(column_name||' '||data_type) as column_name 
-                            from information_schema.columns
-                            where table_schema not in ('pg_catalog', 'information_schema', 'public')
-                            group by table_schema, table_name
-                            order by 1;"""
-
-#csv_name = 'db'
 
 class DataSourceToCSV(BaseOperator):
 
     def __init__(
             self,
             sql: str,
-            csv_file_path: str,
+            csv_file_path,
+            csv_file_name,
             *args,**kwargs):
-        super().__init__(*args, **kwargs)
-        
+        super(DataSourceToCSV, self).__init__(*args, **kwargs)
         self.sql = sql,
-        self.csv_file_path = csv_file_path
+        self.csv_file_path = csv_file_path,
+        self.csv_file_name = csv_file_name
 
     def execute(self, context):
         try:
             # Подключение к существующей базе данных
-            connection = psycopg2.connect(user=db_from['user'],
-                                          password=db_from['password'],
+            connection = psycopg2.connect(user=db_config['db_from']['user'],
+                                          password=db_config['db_from']['password'],
                                           #'host':'host.docker.internal',
-                                          host=db_from['host'],
-                                          port=db_from['port'],
-                                          database=db_from['database'])
+                                          host=db_config['db_from']['host'],
+                                          port=db_config['db_from']['port'],
+                                          database=db_config['db_from']['database']
+                                          )
 
             # Курсор для выполнения операций с базой данных
             cursor = connection.cursor()
             # Выполнение SQL-запроса
-            cursor.execute(dag_config['sql_from'])
+            cursor.execute(''.join(self.sql))
             # Получить результат
             record = cursor.fetchall()
             
-            temp_file = f'{self.csv_file_path}/db.csv'
-
+            n = ''.join(self.csv_file_path)            
+            temp_file = f'{n}{self.csv_file_name}'
+            
             with open(temp_file, mode='w') as f:
-                writer = csv.writer(f, delimiter='|', quoting=csv.QUOTE_NONE)
+                writer = csv.writer(f, delimiter='|', quoting=csv.QUOTE_NONE, quotechar='', escapechar='\\')
                 writer.writerow([i[0] for i in cursor.description])
                 #writer.writerows(record)
-                '''for r in record:
-                    for q in range(len(r[2])):
-                        if 'ARRAY' in r[2][q]:
-                            r[2][q] = r[2][q].replace('ARRAY', 'text[]')
-                            print(r[2][q])'''
                 writer.writerows(record)
 
         except (Exception, Error) as error:
@@ -70,31 +60,35 @@ class DataSourceFromCSV(BaseOperator):
     def __init__(
             self,
             csv_file_path: str,
+            csv_file_name:str,
+            target_table:str,
             *args,**kwargs):
         super().__init__(*args, **kwargs)
-        
+        self.target_table = target_table
         self.csv_file_path = csv_file_path
+        self.csv_file_name = csv_file_name
 
     def execute(self, context):
         try:
             # Подключение к существующей базе данных
-            connection = psycopg2.connect(user=db_to['user'],
-                                          password=db_to['password'],
+            connection = psycopg2.connect(user=db_config['db_to']['user'],
+                                          password=db_config['db_to']['password'],
                                           #'host':'host.docker.internal',
-                                          host=db_to['host'],
-                                          port=db_to['port'],
-                                          database=db_to['database'],
-                                          options=db_to['options'])
+                                          host=db_config['db_to']['host'],
+                                          port=db_config['db_to']['port'],
+                                          database=db_config['db_to']['database'],
+                                          options=db_config['db_to']['options'])
 
             # Курсор для выполнения операций с базой данных
             cursor = connection.cursor()
 
-            temp_file = f'{self.csv_file_path}/db.csv'
+            n = ''.join(self.csv_file_path)            
+            temp_file = f'{n}{self.csv_file_name}'
 
             with open(temp_file, mode='r') as f:
                 reader = csv.reader(f)
                 next(reader)
-                cursor.copy_from(f, 'table_params', sep='|')
+                cursor.copy_from(f, self.target_table, sep='|')
                 connection.commit()
     
         except (Exception, Error) as error:
